@@ -1,0 +1,6 @@
+{
+  "name": "Google Merchandise Store 2.0",
+  "description": "Redesigned Google Merchandise Store with a clean, modern, data-driven shopping experience, GA4 event tracking, and responsive catalog.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

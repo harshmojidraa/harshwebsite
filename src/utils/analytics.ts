@@ -12,8 +12,8 @@
 
 import { GAItem, GAEventLog } from '../types';
 
-// Read configuration variable from environment
-export const GA_MEASUREMENT_ID: string = import.meta.env.VITE_GA_MEASUREMENT_ID || '';
+// Read configuration variable from environment (defaults to provided Google tag ID)
+export const GA_MEASUREMENT_ID: string = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-09962BMX8X';
 
 // Internal event listeners for live viva/debugger UI
 type EventListener = (event: GAEventLog) => void;
@@ -48,28 +48,39 @@ let isInitialized = false;
 export function initGA4(): void {
   if (isInitialized) return;
 
-  if (typeof window !== 'undefined' && GA_MEASUREMENT_ID && GA_MEASUREMENT_ID.startsWith('G-')) {
-    // Inject gtag.js script
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-    document.head.appendChild(script);
+  if (typeof window !== 'undefined') {
+    // If tag is already mounted in document head, connect seamlessly without duplicate tags
+    if (typeof window.gtag === 'function') {
+      isInitialized = true;
+      console.info(`[GA4] Connected to active Google tag (gtag.js) for ${GA_MEASUREMENT_ID}`);
+      return;
+    }
 
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag() {
-      // eslint-disable-next-line prefer-rest-params
-      window.dataLayer?.push(arguments);
-    };
+    if (GA_MEASUREMENT_ID && GA_MEASUREMENT_ID.startsWith('G-')) {
+      const existingScript = document.querySelector(`script[src*="${GA_MEASUREMENT_ID}"]`);
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+        document.head.appendChild(script);
+      }
 
-    window.gtag('js', new Date());
-    window.gtag('config', GA_MEASUREMENT_ID, {
-      send_page_view: false, // Managed manually per route
-    });
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function gtag() {
+        // eslint-disable-next-line prefer-rest-params
+        window.dataLayer?.push(arguments);
+      };
 
-    console.info(`[GA4] Initialized with measurement ID: ${GA_MEASUREMENT_ID}`);
-  } else {
-    // Safe mock fallback for student development and preview environments
-    console.info('[GA4] No VITE_GA_MEASUREMENT_ID configured. Running in simulated telemetry mode.');
+      window.gtag('js', new Date());
+      window.gtag('config', GA_MEASUREMENT_ID, {
+        send_page_view: false, // Managed manually per route
+      });
+
+      console.info(`[GA4] Initialized with measurement ID: ${GA_MEASUREMENT_ID}`);
+    } else {
+      // Safe mock fallback for student development and preview environments
+      console.info('[GA4] Running in simulated telemetry mode.');
+    }
   }
 
   isInitialized = true;
